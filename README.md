@@ -1,123 +1,176 @@
-# IN3101 Lab 02 — Library REST API
+# IN3101 Lab 02: Library REST API
 
-Student: **Fathima Ramaza** · Index: **235089A**
+## Short Project Overview
 
-Repository: https://github.com/FathimaRamaza/library-api
+A Library REST API developed for University of Moratuwa IN3101 Lab 02.
+It supports creating, listing, retrieving, updating and deleting books, with
+request validation, MySQL persistence and Swagger API documentation.
 
-Submission report, screenshot folders and PDF instructions: [submission/README.md](submission/README.md).
+## Technologies Used
 
-Project lives directly in this folder. Java 21 target, Maven, Spring Boot 4.1.2,
-Spring Web MVC, JPA, Jakarta Validation, MySQL and springdoc Swagger UI 3.2.0.
-Versions were checked against https://spring.io/projects/spring-boot/ and
-https://springdoc.org/getting-started.html .
+- Java 21 and Maven
+- Spring Boot 4.1.2 and Spring Web MVC
+- Spring Data JPA and MySQL
+- Jakarta Validation
+- springdoc-openapi 3.2.0 with Swagger UI
+- JUnit and H2 for isolated integration tests
 
-## Setup on Windows
+## Project Structure
 
-1. JDK 21 can be installed using
-   `winget install --id EclipseAdoptium.Temurin.21.JDK --exact --source winget`.
-   `scripts/use-java21.ps1` selects the installed JDK for this project's process;
-   it does not change your global Java settings.
-2. In your own local PowerShell terminal, from this folder run:
+```text
+library-api/
+├── pom.xml
+├── .env.example
+├── .gitignore
+├── README.md
+├── database/setup.sql
+├── postman/IN3101-Lab02.postman_collection.json
+├── scripts/                  # Setup, run, verification and submission helpers
+├── src/
+│   ├── main/java/            # Application, entity, request, repository, service, controller
+│   ├── main/resources/       # application.properties and schema.sql
+│   └── test/java/            # BookApiIntegrationTest
+└── submission/               # Existing documents and screenshots/S1 through S8
+```
 
-   ```powershell
-   .\scripts\setup-mysql.ps1
-   ```
+## API Endpoints
 
-   Enter the MySQL root password only at the local `Enter password:` prompt.
-   It is not displayed, added to PowerShell history, or saved by this script.
-   Never append the password to `-p`, paste it in chat, or put it in source files.
-   The script reports whether `library_db` exists, creates it if absent, and
-   creates the least-privilege `library_app` account with a generated password.
-   SQL goes through stdin rather than command arguments or a SQL file.
-   Existing app users are not overwritten: if the account exists, use
-   `.\scripts\run.ps1` and enter its existing password when prompted.
-3. The generated app credential is saved using Windows DPAPI via `Export-Clixml`
-   in `.local/mysql.credential.xml`. Only your Windows account on this machine
-   can decrypt it; `.local/` is Git-ignored. Root credentials are never saved.
-   Restart with `.\scripts\run.ps1`; it selects Java 21 and loads that credential.
-   The app password is supplied to Java through the process environment and
-   removed from the script environment on exit. Spring Boot does not load `.env`.
-4. In another terminal verify:
+Base URL: `http://localhost:8080`
 
-   ```powershell
-   Invoke-WebRequest http://localhost:8080/api/books -UseBasicParsing
-   ```
-
-   Expect HTTP 200 and a JSON array. If PowerShell blocks script execution, use
-   `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\setup-mysql.ps1`
-   to apply the exception only to that process.
-
-The app listens on `127.0.0.1:8080`. Optional variables: `DB_HOST`, `DB_PORT`,
-`SERVER_PORT`, `SERVER_ADDRESS`, `DB_SSL_MODE`. `PREFERRED` permits local MySQL
-without TLS; for remote servers use `VERIFY_IDENTITY` with trusted certificates.
-Public-key retrieval is disabled; configure TLS if MySQL authentication requires it.
-The idempotent schema script creates the books table; Hibernate validates the schema
-and never uses `create` or `create-drop` against MySQL. Existing data is retained.
-This lab API has no authentication: keep it bound to loopback.
-
-## API
-
-| Method | Path | Success | Other responses |
+| Method | Route | Function | HTTP status |
 |---|---|---|---|
-| POST | `/api/books` | 201 + Location and book | 400 invalid input, 409 duplicate ISBN |
-| GET | `/api/books` | 200 array (possibly empty) | |
-| GET | `/api/books/{id}` | 200 book | 400 invalid ID, 404 absent |
-| PUT | `/api/books/{id}` | 200 updated book | 400 invalid input, 404 absent, 409 duplicate ISBN |
-| DELETE | `/api/books/{id}` | 204 empty body | 400 invalid ID, 404 absent |
+| POST | `/api/books` | Create a book | 201; 400 invalid input; 409 duplicate ISBN |
+| GET | `/api/books` | List all books | 200, including an empty array |
+| GET | `/api/books/{id}` | Retrieve one book | 200; 400 invalid ID; 404 not found |
+| PUT | `/api/books/{id}` | Update a book | 200; 400 invalid input; 404 not found; 409 duplicate ISBN |
+| DELETE | `/api/books/{id}` | Delete a book | 204 with no body; 400 invalid ID; 404 not found |
 
 POST and PUT accept:
 
 ```json
-{"title":"Clean Code","author":"Robert C. Martin","isbn":"9780132350884","publishedYear":2008}
+{
+  "title": "[235089A] - Clean Code",
+  "author": "Robert C. Martin",
+  "isbn": "9780132350884",
+  "publishedYear": 2008
+}
 ```
 
-Title and author are required with maximum lengths 200 and 150. ISBN must be
-10 characters (last character may be X) or 13 digits, without separators, and unique.
-This validates ISBN format, not its checksum. Publication year is required, 1–9999.
-IDs are generated by the server. Errors use Spring Problem Details; validation
-errors contain an `errors` array and do not expose SQL or stack traces to clients.
+IDs are generated by the server. Title and author are required, with maximum lengths
+of 200 and 150. ISBN must be unique and have 10 characters (a final X is allowed)
+or 13 digits, without hyphens; checksum validation is not implemented.
+Publication year is required and must be between 1 and 9999.
+Validation errors use Problem Details with an `errors` list.
 
-Swagger UI: http://localhost:8080/swagger-ui/index.html
+## Database and Local Setup
 
-OpenAPI JSON: http://localhost:8080/v3/api-docs
+Prerequisites: JDK 21, Maven and a running local MySQL server.
+The PowerShell scripts select an installed JDK 21 without changing global Java settings.
 
-## Eight screenshot cases
+From PowerShell:
+
+```powershell
+cd C:\labs\library-api
+. .\scripts\use-java21.ps1
+java --version
+mvn -version
+```
+
+For first-time database and app-user setup:
+
+```powershell
+.\scripts\setup-mysql.ps1
+```
+
+Enter the root password only at the local MySQL password prompt. The script checks
+for `library_db`, creates it if absent, creates a dedicated `library_app` account
+with database-scoped privileges, and starts the application. It does not overwrite
+an existing app account. [database/setup.sql](database/setup.sql) is also available
+for database-only setup; it does not create the app user.
+
+For an existing setup, stop any running copy before starting:
+
+```powershell
+.\scripts\run.ps1
+```
+
+The run script loads the app credential from `.local/mysql.credential.xml`, or
+prompts for the existing app password if no saved credential is available.
+The setup script encrypts the saved app credential for the current Windows user
+using DPAPI. Root credentials are not saved. Never put passwords in source files,
+command arguments or Git. `.local/`, real `.env` files, logs and `target/` are ignored.
+[.env.example](.env.example) contains placeholders only; Spring Boot does not
+automatically load `.env` files.
+
+The default connection is MySQL on `localhost:3306/library_db`. Credentials use
+`DB_USERNAME` and `DB_PASSWORD`; optional settings include `DB_HOST`, `DB_PORT`,
+`DB_SSL_MODE` and `SERVER_PORT`. The table is created by `schema.sql`, and Hibernate
+validates it. Existing data is retained.
+
+The API has no authentication and binds to `127.0.0.1:8080` by default.
+Keep it local. The default TLS mode `PREFERRED` permits a local connection without
+TLS; remote connections should use `VERIFY_IDENTITY` with trusted certificates.
+Public-key retrieval is disabled.
+
+Check the running API:
+
+```powershell
+Invoke-WebRequest http://localhost:8080/api/books -UseBasicParsing
+```
+
+Build and run the automated integration test:
+
+```powershell
+. .\scripts\use-java21.ps1
+mvn clean verify
+```
+
+The test covers CRUD, invalid input, duplicate ISBNs, missing books and Swagger
+resources using an isolated H2 database. The application uses MySQL at runtime.
+If PowerShell blocks a script, a process-only exception can be used:
+`powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run.ps1`.
+
+## Testing with Postman
 
 Import [the Postman collection](postman/IN3101-Lab02.postman_collection.json).
-The index variable is `235089A`; S1 uses `[235089A] - Clean Code` by Robert C. Martin.
-The current MySQL database already has two supporting books, so **skip Preparation
-and run S1–S8 directly**. S1 generates its own ISBN values. On a fresh empty
-database only, run Preparation once first to seed two supporting books.
-Stop if there are more than two books before S1; do not run a destructive cleanup.
-The collection generates ISBNs and captures `bookId` automatically.
-For each screenshot show method, URL, request JSON where applicable, response body,
-status code and Test Results. Requests have status assertions; no saved success
-responses or fabricated screenshots are included.
+Its `baseUrl` defaults to `http://localhost:8080`, and `indexNumber` is `235089A`.
 
-| Screenshot | Official requirement | Collection behavior |
-|---|---|---|
-| S1 | POST create 201 | Creates the index-number book, captures ID and checks Location |
-| S2 | GET all 200 with 3 books | Asserts exactly three and the exact index-number title |
-| S3 | GET by ID 200 | Uses the S1 ID and checks it |
-| S4 | PUT update 200 | Updates the title and checks the response |
-| S5 | DELETE 204 | Deletes the S1 book and checks an empty response |
-| S6 | GET deleted ID 404 | Uses that same ID |
-| S7 | POST empty title 400 | Only title is invalid; checks the title error |
-| S8 | Swagger POST documented with 201 and 400 | Checks OpenAPI POST responses |
+Before S1, check the book list. For an empty lab database, run the Preparation
+folder once to create two supporting books. If two supporting books already exist,
+skip Preparation. Do not repeat seeding or automatically delete existing data.
 
-For **S8's screenshot**, open http://localhost:8080/swagger-ui/index.html,
-expand `POST /api/books`, and show its Responses section containing **201** and
-**400**. The collection's JSON check supports this, but is not the UI screenshot.
-Re-running preparation adds books; do not repeat it on a populated database.
+Run S1–S8 in order. S1 generates an ISBN, creates the index-number book and stores
+its ID. S2 expects exactly three books. S5 deletes the book created in S1.
 
-## Verification
+| Case | Expected result |
+|---|---|
+| S1: POST create | 201 |
+| S2: GET all | 200; three books including the index-number book |
+| S3: GET by ID | 200 |
+| S4: PUT update | 200 |
+| S5: DELETE | 204; empty body |
+| S6: GET deleted ID | 404 |
+| S7: POST empty title | 400; title validation error |
+| S8: Check OpenAPI | POST documents 201 and 400 |
 
-For Maven commands in a new terminal, run `. .\scripts\use-java21.ps1` first.
-`mvn clean verify` builds and runs a real HTTP integration test on an ephemeral
-server with H2 in MySQL compatibility mode. H2 is test-only; it does not replace
-MySQL at application runtime. It checks CRUD, validation, conflicts, missing IDs,
-malformed JSON and Swagger resources. Passing this test does not establish MySQL
-connectivity or a successful run on Java 21. See [SETUP-STATUS.md](SETUP-STATUS.md)
-for observed results. The Java 21 build and separate MySQL HTTP verification both
-passed. `scripts/verify-lab.ps1` repeats the official API checks using MySQL and
-exactly two pre-existing supporting books, and saves actual responses under target.
+For optional MySQL HTTP verification, `scripts/verify-lab.ps1` requires exactly two
+existing supporting books, creates and deletes its own test book, and saves responses
+in `target/mysql-verification.json`. Submission files are kept in [submission/](submission/).
+
+## Swagger API Documentation
+
+With the application running:
+
+- [Swagger UI](http://localhost:8080/swagger-ui/index.html)
+- [OpenAPI JSON](http://localhost:8080/v3/api-docs)
+
+For S8, expand `POST /api/books` in Swagger UI and show the documented
+**201 Created** and **400 Bad Request** responses.
+
+## Author
+
+**Fathima Ramaza** · **Index:** 235089A
+
+University of Moratuwa · IN3101 Lab 02
+
+[GitHub repository](https://github.com/FathimaRamaza/library-api)
