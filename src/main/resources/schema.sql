@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS books (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(200) NOT NULL,
+    author VARCHAR(150) NOT NULL,
+    isbn VARCHAR(13) NOT NULL,
+    published_year INTEGER NOT NULL,
+    CONSTRAINT uk_books_isbn UNIQUE (isbn)
+);

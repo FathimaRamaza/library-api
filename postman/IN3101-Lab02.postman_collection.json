@@ -1,0 +1,359 @@
+{
+  "info": {
+    "name": "IN3101 Lab 02 - Official S1-S8",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Current MySQL database has two supporting books: skip Preparation and run S1-S8 in order. For a fresh empty database only, run Preparation once first. S1 generates its ISBNs. Stop if more than two books already exist; do not delete existing data automatically. S8 checks OpenAPI; manually capture the expanded Swagger UI POST."
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "bookId",
+      "value": ""
+    },
+    {
+      "key": "indexNumber",
+      "value": "235089A"
+    },
+    {
+      "key": "isbn1",
+      "value": ""
+    },
+    {
+      "key": "isbn2",
+      "value": ""
+    },
+    {
+      "key": "isbn3",
+      "value": ""
+    },
+    {
+      "key": "isbn4",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Preparation - not screenshot cases",
+      "item": [
+        {
+          "name": "Prepare ISBNs and check empty dedicated lab database",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/books"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const seed = String(Date.now()).slice(-9); [1,2,3,4].forEach(n => pm.collectionVariables.set(\"isbn\" + n, \"978\" + seed + n));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Empty database required before seeding\", () => pm.expect(pm.response.json()).to.have.lengthOf(0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Seed supporting book 2",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/books",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"The Pragmatic Programmer\",\n  \"author\": \"Andrew Hunt and David Thomas\",\n  \"isbn\": \"{{isbn2}}\",\n  \"publishedYear\": 1999\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Seed supporting book 3",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/books",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Effective Java\",\n  \"author\": \"Joshua Bloch\",\n  \"isbn\": \"{{isbn3}}\",\n  \"publishedYear\": 2018\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Official screenshots S1-S8",
+      "item": [
+        {
+          "name": "S1 POST create - 201",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/books",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"[{{indexNumber}}] - Clean Code\",\n  \"author\": \"Robert C. Martin\",\n  \"isbn\": \"{{isbn1}}\",\n  \"publishedYear\": 2008\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const seed = String(Date.now()).slice(-9); [1,4].forEach(n => pm.collectionVariables.set(\"isbn\" + n, \"978\" + seed + n));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set(\"bookId\", pm.response.json().id); }",
+                  "pm.test(\"Location header\", () => pm.expect(pm.response.headers.get(\"Location\")).to.include(\"/api/books/\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "S2 GET all - 200, 3 books including index book",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/books"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const books = pm.response.json();",
+                  "pm.test(\"Exactly three books\", () => pm.expect(books).to.have.lengthOf(3));",
+                  "pm.test(\"Index-number book included\", () => pm.expect(books.some(b => b.title === \"[\" + pm.collectionVariables.get(\"indexNumber\") + \"] - Clean Code\")).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "S3 GET by ID - 200",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/books/{{bookId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Correct ID\", () => pm.expect(String(pm.response.json().id)).to.eql(String(pm.collectionVariables.get(\"bookId\"))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "S4 PUT update - 200",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/books/{{bookId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"[{{indexNumber}}] - Clean Code (Updated)\",\n  \"author\": \"Robert C. Martin\",\n  \"isbn\": \"{{isbn1}}\",\n  \"publishedYear\": 2008\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Updated title\", () => pm.expect(pm.response.json().title).to.include(\"(Updated)\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "S5 DELETE - 204",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/books/{{bookId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", () => pm.response.to.have.status(204));",
+                  "pm.test(\"Empty body\", () => pm.expect(pm.response.text()).to.eql(\"\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "S6 GET deleted ID - 404",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/books/{{bookId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "S7 POST empty title - 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/books",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"\",\n  \"author\": \"Robert C. Martin\",\n  \"isbn\": \"{{isbn4}}\",\n  \"publishedYear\": 2008\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Title validation error\", () => pm.expect(pm.response.json().errors.some(e => e.startsWith(\"title:\"))).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "S8 Swagger POST documented - 201 and 400",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/v3/api-docs",
+            "header": []
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const responses = pm.response.json().paths[\"/api/books\"].post.responses;",
+                  "pm.test(\"201 documented\", () => pm.expect(responses).to.have.property(\"201\"));",
+                  "pm.test(\"400 documented\", () => pm.expect(responses).to.have.property(\"400\"));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
