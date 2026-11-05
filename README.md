@@ -1,67 +1,41 @@
 # Library REST API
 
-A Spring Boot REST API for managing books. It stores book details in MySQL and
-provides endpoints to create, read, update and delete records. Each book has a
-title, author, ISBN and publication year.
+A Spring Boot REST API for managing books with MySQL storage, input validation, and Swagger documentation.
 
 ## Features
 
-- Book CRUD operations
-- Request validation and unique ISBNs
-- HTTP responses for invalid requests and missing books
-- Interactive API documentation with Swagger UI
+- Create, list, retrieve, update, and delete books.
+- Validate required fields and reject duplicate ISBNs.
+- Return appropriate HTTP responses for invalid requests and missing books.
 
 ## Technologies
 
-Java 21, Maven, Spring Boot 4.1.2, Spring Web MVC, Spring Data JPA, MySQL,
-Jakarta Validation and springdoc-openapi. Integration tests use JUnit and H2.
+Java 21, Spring Boot, Spring Data JPA, MySQL, Maven, Swagger UI and Postman.
 
 ## API Endpoints
 
-Base URL: `http://localhost:8080`
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| GET | `/api/books` | List all books |
+| GET | `/api/books/{id}` | Get a book by ID |
+| POST | `/api/books` | Create a book |
+| PUT | `/api/books/{id}` | Update a book |
+| DELETE | `/api/books/{id}` | Delete a book |
 
-| Method | Endpoint | Description | Success |
-|---|---|---|---|
-| POST | `/api/books` | Create a book | 201 |
-| GET | `/api/books` | List all books | 200 |
-| GET | `/api/books/{id}` | Get one book | 200 |
-| PUT | `/api/books/{id}` | Update a book | 200 |
-| DELETE | `/api/books/{id}` | Delete a book | 204 |
+## Running the Project
 
-Invalid input returns 400, missing books return 404, and duplicate ISBNs return 409.
-
-## Setup and Run
-
-Install JDK 21 and Maven, and start MySQL locally on port 3306.
-
-From the project folder in PowerShell, run the first-time setup:
+Install Java 21 and Maven, start MySQL on port 3306, then run this first-time setup from the project folder:
 
 ```powershell
 .\scripts\setup-mysql.ps1
 ```
 
-Enter the MySQL root password at the local prompt. The script creates
-`library_db` and a dedicated app account, saves an encrypted app credential
-in Git-ignored `.local/`, and starts the API.
+Enter the MySQL root password at the local prompt. The script creates the database and app account, then starts the API.
 
-For an existing database and app account, use:
+For an existing setup, use `.\scripts\run.ps1` instead.
 
-```powershell
-.\scripts\run.ps1
-```
+## API Documentation
 
-Both scripts select Java 21. The run script uses saved credentials or prompts
-for the app password.
+With the application running, open Swagger UI to explore and try endpoints:
 
-To build and run tests:
-
-```powershell
-. .\scripts\use-java21.ps1
-mvn clean verify
-```
-
-## Swagger Documentation
-
-Open [Swagger UI](http://localhost:8080/swagger-ui/index.html) while the API is
-running to view endpoints and try requests. The OpenAPI specification is available
-at [`/v3/api-docs`](http://localhost:8080/v3/api-docs).
+http://localhost:8080/swagger-ui/index.html
