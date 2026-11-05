@@ -47,6 +47,13 @@ class BookApiIntegrationTest {
         var postResponses = openApi.path("paths").path("/api/books").path("post").path("responses");
         assertThat(postResponses.has("201")).isTrue();
         assertThat(postResponses.has("400")).isTrue();
+        var examples = java.util.Map.of("title", "Clean Code", "author", "Robert C. Martin",
+                "isbn", "9780132350884", "publishedYear", "2008");
+        for (String schema : java.util.List.of("BookRequest", "Book")) {
+            var properties = openApi.path("components").path("schemas").path(schema).path("properties");
+            examples.forEach((field, expected) -> assertThat(properties.path(field).path("example").asText())
+                    .as("%s.%s example", schema, field).isEqualTo(expected));
+        }
         assertThat(request("GET", "/swagger-ui/index.html", null).statusCode()).isEqualTo(200);
     }
 }
